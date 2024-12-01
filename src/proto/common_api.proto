@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+package dogsvr;
+
+service CommonApiService {
+  rpc CommonUnaryApi(CommonApiReq) returns (CommonApiRes) {};
+}
+
+message CommonApiReq {
+  uint32 cmd_id = 1;
+  bytes inner_req = 2;
+}
+message CommonApiRes {
+  uint32 cmd_id = 1;
+  bytes inner_res = 2;
+}
