@@ -1,6 +1,7 @@
-import { BaseCL, BaseCLC, Msg, sendMsgToWorkerThread} from "@dogsvr/dogsvr/main_thread";
+import { BaseCL, BaseCLC, Msg, sendMsgToWorkerThread, infoLog } from "@dogsvr/dogsvr/main_thread";
 import { createServer, createChannel, createClient } from 'nice-grpc';
 import { CommonApiServiceDefinition, CommonApiServiceImplementation, CommonApiReq, CommonApiRes, DeepPartial } from './proto/common_api';
+import { Worker } from "worker_threads"
 
 export class GrpcCL extends BaseCL {
     server;
@@ -13,6 +14,7 @@ export class GrpcCL extends BaseCL {
 
     async startListen() {
         await this.server.listen('0.0.0.0:' + this.port);
+        infoLog('grpc server started on port ' + this.port);
     }
 }
 
@@ -25,7 +27,7 @@ const commonApiServiceImpl: CommonApiServiceImplementation = {
 
         let response: DeepPartial<CommonApiRes> = {
             cmdId: request.cmdId,
-            innerRes: resMsg.body as Uint8Array,
+            innerRes: resMsg.body as string,
         };
         return response;
     },
@@ -41,13 +43,13 @@ export class GrpcCLC extends BaseCLC {
         this.client = createClient(CommonApiServiceDefinition, this.channel);
     }
 
-    async call(msg: Msg): Promise<Msg> {
+    async callCmd(msg: Msg, thread: Worker) {
         let response = await this.client.commonUnaryApi({
             cmdId: msg.cmdId,
-            innerReq: msg.body as Uint8Array,
+            innerReq: msg.body as string,
         });
-        let resMsg = new Msg(response.cmdId, 0, response.innerRes);
-        return resMsg;
+        msg.body = response.innerRes;
+        thread.postMessage(msg);
     }
 }
-    
+

@@ -8,9 +8,9 @@ service CommonApiService {
 
 message CommonApiReq {
   uint32 cmd_id = 1;
-  bytes inner_req = 2;
+  string inner_req = 2;
 }
 message CommonApiRes {
   uint32 cmd_id = 1;
-  bytes inner_res = 2;
+  string inner_res = 2;
 }

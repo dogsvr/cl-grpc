@@ -12,16 +12,16 @@ export const protobufPackage = "dogsvr";
 
 export interface CommonApiReq {
   cmdId: number;
-  innerReq: Uint8Array;
+  innerReq: string;
 }
 
 export interface CommonApiRes {
   cmdId: number;
-  innerRes: Uint8Array;
+  innerRes: string;
 }
 
 function createBaseCommonApiReq(): CommonApiReq {
-  return { cmdId: 0, innerReq: new Uint8Array(0) };
+  return { cmdId: 0, innerReq: "" };
 }
 
 export const CommonApiReq: MessageFns<CommonApiReq> = {
@@ -29,8 +29,8 @@ export const CommonApiReq: MessageFns<CommonApiReq> = {
     if (message.cmdId !== 0) {
       writer.uint32(8).uint32(message.cmdId);
     }
-    if (message.innerReq.length !== 0) {
-      writer.uint32(18).bytes(message.innerReq);
+    if (message.innerReq !== "") {
+      writer.uint32(18).string(message.innerReq);
     }
     return writer;
   },
@@ -55,7 +55,7 @@ export const CommonApiReq: MessageFns<CommonApiReq> = {
             break;
           }
 
-          message.innerReq = reader.bytes();
+          message.innerReq = reader.string();
           continue;
         }
       }
@@ -70,7 +70,7 @@ export const CommonApiReq: MessageFns<CommonApiReq> = {
   fromJSON(object: any): CommonApiReq {
     return {
       cmdId: isSet(object.cmdId) ? globalThis.Number(object.cmdId) : 0,
-      innerReq: isSet(object.innerReq) ? bytesFromBase64(object.innerReq) : new Uint8Array(0),
+      innerReq: isSet(object.innerReq) ? globalThis.String(object.innerReq) : "",
     };
   },
 
@@ -79,8 +79,8 @@ export const CommonApiReq: MessageFns<CommonApiReq> = {
     if (message.cmdId !== 0) {
       obj.cmdId = Math.round(message.cmdId);
     }
-    if (message.innerReq.length !== 0) {
-      obj.innerReq = base64FromBytes(message.innerReq);
+    if (message.innerReq !== "") {
+      obj.innerReq = message.innerReq;
     }
     return obj;
   },
@@ -91,13 +91,13 @@ export const CommonApiReq: MessageFns<CommonApiReq> = {
   fromPartial(object: DeepPartial<CommonApiReq>): CommonApiReq {
     const message = createBaseCommonApiReq();
     message.cmdId = object.cmdId ?? 0;
-    message.innerReq = object.innerReq ?? new Uint8Array(0);
+    message.innerReq = object.innerReq ?? "";
     return message;
   },
 };
 
 function createBaseCommonApiRes(): CommonApiRes {
-  return { cmdId: 0, innerRes: new Uint8Array(0) };
+  return { cmdId: 0, innerRes: "" };
 }
 
 export const CommonApiRes: MessageFns<CommonApiRes> = {
@@ -105,8 +105,8 @@ export const CommonApiRes: MessageFns<CommonApiRes> = {
     if (message.cmdId !== 0) {
       writer.uint32(8).uint32(message.cmdId);
     }
-    if (message.innerRes.length !== 0) {
-      writer.uint32(18).bytes(message.innerRes);
+    if (message.innerRes !== "") {
+      writer.uint32(18).string(message.innerRes);
     }
     return writer;
   },
@@ -131,7 +131,7 @@ export const CommonApiRes: MessageFns<CommonApiRes> = {
             break;
           }
 
-          message.innerRes = reader.bytes();
+          message.innerRes = reader.string();
           continue;
         }
       }
@@ -146,7 +146,7 @@ export const CommonApiRes: MessageFns<CommonApiRes> = {
   fromJSON(object: any): CommonApiRes {
     return {
       cmdId: isSet(object.cmdId) ? globalThis.Number(object.cmdId) : 0,
-      innerRes: isSet(object.innerRes) ? bytesFromBase64(object.innerRes) : new Uint8Array(0),
+      innerRes: isSet(object.innerRes) ? globalThis.String(object.innerRes) : "",
     };
   },
 
@@ -155,8 +155,8 @@ export const CommonApiRes: MessageFns<CommonApiRes> = {
     if (message.cmdId !== 0) {
       obj.cmdId = Math.round(message.cmdId);
     }
-    if (message.innerRes.length !== 0) {
-      obj.innerRes = base64FromBytes(message.innerRes);
+    if (message.innerRes !== "") {
+      obj.innerRes = message.innerRes;
     }
     return obj;
   },
@@ -167,7 +167,7 @@ export const CommonApiRes: MessageFns<CommonApiRes> = {
   fromPartial(object: DeepPartial<CommonApiRes>): CommonApiRes {
     const message = createBaseCommonApiRes();
     message.cmdId = object.cmdId ?? 0;
-    message.innerRes = object.innerRes ?? new Uint8Array(0);
+    message.innerRes = object.innerRes ?? "";
     return message;
   },
 };
@@ -194,31 +194,6 @@ export interface CommonApiServiceImplementation<CallContextExt = {}> {
 
 export interface CommonApiServiceClient<CallOptionsExt = {}> {
   commonUnaryApi(request: DeepPartial<CommonApiReq>, options?: CallOptions & CallOptionsExt): Promise<CommonApiRes>;
-}
-
-function bytesFromBase64(b64: string): Uint8Array {
-  if ((globalThis as any).Buffer) {
-    return Uint8Array.from(globalThis.Buffer.from(b64, "base64"));
-  } else {
-    const bin = globalThis.atob(b64);
-    const arr = new Uint8Array(bin.length);
-    for (let i = 0; i < bin.length; ++i) {
-      arr[i] = bin.charCodeAt(i);
-    }
-    return arr;
-  }
-}
-
-function base64FromBytes(arr: Uint8Array): string {
-  if ((globalThis as any).Buffer) {
-    return globalThis.Buffer.from(arr).toString("base64");
-  } else {
-    const bin: string[] = [];
-    arr.forEach((byte) => {
-      bin.push(globalThis.String.fromCharCode(byte));
-    });
-    return globalThis.btoa(bin.join(""));
-  }
 }
 
 type Builtin = Date | Function | Uint8Array | string | number | boolean | undefined;
