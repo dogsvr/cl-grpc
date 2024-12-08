@@ -6,11 +6,17 @@ service CommonApiService {
   rpc CommonUnaryApi(CommonApiReq) returns (CommonApiRes) {};
 }
 
-message CommonApiReq {
+message Head {
   uint32 cmd_id = 1;
+  string open_id = 2;
+  uint32 zone_id = 3;
+}
+
+message CommonApiReq {
+  Head head = 1;
   string inner_req = 2;
 }
 message CommonApiRes {
-  uint32 cmd_id = 1;
+  Head head = 1;
   string inner_res = 2;
 }

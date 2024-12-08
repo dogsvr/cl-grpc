@@ -10,24 +10,122 @@ import { type CallContext, type CallOptions } from "nice-grpc-common";
 
 export const protobufPackage = "dogsvr";
 
-export interface CommonApiReq {
+export interface Head {
   cmdId: number;
+  openId: string;
+  zoneId: number;
+}
+
+export interface CommonApiReq {
+  head: Head | undefined;
   innerReq: string;
 }
 
 export interface CommonApiRes {
-  cmdId: number;
+  head: Head | undefined;
   innerRes: string;
 }
 
+function createBaseHead(): Head {
+  return { cmdId: 0, openId: "", zoneId: 0 };
+}
+
+export const Head: MessageFns<Head> = {
+  encode(message: Head, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
+    if (message.cmdId !== 0) {
+      writer.uint32(8).uint32(message.cmdId);
+    }
+    if (message.openId !== "") {
+      writer.uint32(18).string(message.openId);
+    }
+    if (message.zoneId !== 0) {
+      writer.uint32(24).uint32(message.zoneId);
+    }
+    return writer;
+  },
+
+  decode(input: BinaryReader | Uint8Array, length?: number): Head {
+    const reader = input instanceof BinaryReader ? input : new BinaryReader(input);
+    let end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseHead();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1: {
+          if (tag !== 8) {
+            break;
+          }
+
+          message.cmdId = reader.uint32();
+          continue;
+        }
+        case 2: {
+          if (tag !== 18) {
+            break;
+          }
+
+          message.openId = reader.string();
+          continue;
+        }
+        case 3: {
+          if (tag !== 24) {
+            break;
+          }
+
+          message.zoneId = reader.uint32();
+          continue;
+        }
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skip(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): Head {
+    return {
+      cmdId: isSet(object.cmdId) ? globalThis.Number(object.cmdId) : 0,
+      openId: isSet(object.openId) ? globalThis.String(object.openId) : "",
+      zoneId: isSet(object.zoneId) ? globalThis.Number(object.zoneId) : 0,
+    };
+  },
+
+  toJSON(message: Head): unknown {
+    const obj: any = {};
+    if (message.cmdId !== 0) {
+      obj.cmdId = Math.round(message.cmdId);
+    }
+    if (message.openId !== "") {
+      obj.openId = message.openId;
+    }
+    if (message.zoneId !== 0) {
+      obj.zoneId = Math.round(message.zoneId);
+    }
+    return obj;
+  },
+
+  create(base?: DeepPartial<Head>): Head {
+    return Head.fromPartial(base ?? {});
+  },
+  fromPartial(object: DeepPartial<Head>): Head {
+    const message = createBaseHead();
+    message.cmdId = object.cmdId ?? 0;
+    message.openId = object.openId ?? "";
+    message.zoneId = object.zoneId ?? 0;
+    return message;
+  },
+};
+
 function createBaseCommonApiReq(): CommonApiReq {
-  return { cmdId: 0, innerReq: "" };
+  return { head: undefined, innerReq: "" };
 }
 
 export const CommonApiReq: MessageFns<CommonApiReq> = {
   encode(message: CommonApiReq, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.cmdId !== 0) {
-      writer.uint32(8).uint32(message.cmdId);
+    if (message.head !== undefined) {
+      Head.encode(message.head, writer.uint32(10).fork()).join();
     }
     if (message.innerReq !== "") {
       writer.uint32(18).string(message.innerReq);
@@ -43,11 +141,11 @@ export const CommonApiReq: MessageFns<CommonApiReq> = {
       const tag = reader.uint32();
       switch (tag >>> 3) {
         case 1: {
-          if (tag !== 8) {
+          if (tag !== 10) {
             break;
           }
 
-          message.cmdId = reader.uint32();
+          message.head = Head.decode(reader, reader.uint32());
           continue;
         }
         case 2: {
@@ -69,15 +167,15 @@ export const CommonApiReq: MessageFns<CommonApiReq> = {
 
   fromJSON(object: any): CommonApiReq {
     return {
-      cmdId: isSet(object.cmdId) ? globalThis.Number(object.cmdId) : 0,
+      head: isSet(object.head) ? Head.fromJSON(object.head) : undefined,
       innerReq: isSet(object.innerReq) ? globalThis.String(object.innerReq) : "",
     };
   },
 
   toJSON(message: CommonApiReq): unknown {
     const obj: any = {};
-    if (message.cmdId !== 0) {
-      obj.cmdId = Math.round(message.cmdId);
+    if (message.head !== undefined) {
+      obj.head = Head.toJSON(message.head);
     }
     if (message.innerReq !== "") {
       obj.innerReq = message.innerReq;
@@ -90,20 +188,20 @@ export const CommonApiReq: MessageFns<CommonApiReq> = {
   },
   fromPartial(object: DeepPartial<CommonApiReq>): CommonApiReq {
     const message = createBaseCommonApiReq();
-    message.cmdId = object.cmdId ?? 0;
+    message.head = (object.head !== undefined && object.head !== null) ? Head.fromPartial(object.head) : undefined;
     message.innerReq = object.innerReq ?? "";
     return message;
   },
 };
 
 function createBaseCommonApiRes(): CommonApiRes {
-  return { cmdId: 0, innerRes: "" };
+  return { head: undefined, innerRes: "" };
 }
 
 export const CommonApiRes: MessageFns<CommonApiRes> = {
   encode(message: CommonApiRes, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.cmdId !== 0) {
-      writer.uint32(8).uint32(message.cmdId);
+    if (message.head !== undefined) {
+      Head.encode(message.head, writer.uint32(10).fork()).join();
     }
     if (message.innerRes !== "") {
       writer.uint32(18).string(message.innerRes);
@@ -119,11 +217,11 @@ export const CommonApiRes: MessageFns<CommonApiRes> = {
       const tag = reader.uint32();
       switch (tag >>> 3) {
         case 1: {
-          if (tag !== 8) {
+          if (tag !== 10) {
             break;
           }
 
-          message.cmdId = reader.uint32();
+          message.head = Head.decode(reader, reader.uint32());
           continue;
         }
         case 2: {
@@ -145,15 +243,15 @@ export const CommonApiRes: MessageFns<CommonApiRes> = {
 
   fromJSON(object: any): CommonApiRes {
     return {
-      cmdId: isSet(object.cmdId) ? globalThis.Number(object.cmdId) : 0,
+      head: isSet(object.head) ? Head.fromJSON(object.head) : undefined,
       innerRes: isSet(object.innerRes) ? globalThis.String(object.innerRes) : "",
     };
   },
 
   toJSON(message: CommonApiRes): unknown {
     const obj: any = {};
-    if (message.cmdId !== 0) {
-      obj.cmdId = Math.round(message.cmdId);
+    if (message.head !== undefined) {
+      obj.head = Head.toJSON(message.head);
     }
     if (message.innerRes !== "") {
       obj.innerRes = message.innerRes;
@@ -166,7 +264,7 @@ export const CommonApiRes: MessageFns<CommonApiRes> = {
   },
   fromPartial(object: DeepPartial<CommonApiRes>): CommonApiRes {
     const message = createBaseCommonApiRes();
-    message.cmdId = object.cmdId ?? 0;
+    message.head = (object.head !== undefined && object.head !== null) ? Head.fromPartial(object.head) : undefined;
     message.innerRes = object.innerRes ?? "";
     return message;
   },
