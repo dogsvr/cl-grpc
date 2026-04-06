@@ -8,8 +8,9 @@ service CommonApiService {
 
 message Head {
   uint32 cmd_id = 1;
-  string open_id = 2;
-  uint32 zone_id = 3;
+  optional string open_id = 2;
+  optional uint32 zone_id = 3;
+  optional uint32 gid = 4;
 }
 
 message CommonApiReq {

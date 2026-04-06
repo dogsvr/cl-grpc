@@ -12,8 +12,9 @@ export const protobufPackage = "dogsvr";
 
 export interface Head {
   cmdId: number;
-  openId: string;
-  zoneId: number;
+  openId?: string | undefined;
+  zoneId?: number | undefined;
+  gid?: number | undefined;
 }
 
 export interface CommonApiReq {
@@ -27,7 +28,7 @@ export interface CommonApiRes {
 }
 
 function createBaseHead(): Head {
-  return { cmdId: 0, openId: "", zoneId: 0 };
+  return { cmdId: 0, openId: undefined, zoneId: undefined, gid: undefined };
 }
 
 export const Head: MessageFns<Head> = {
@@ -35,11 +36,14 @@ export const Head: MessageFns<Head> = {
     if (message.cmdId !== 0) {
       writer.uint32(8).uint32(message.cmdId);
     }
-    if (message.openId !== "") {
+    if (message.openId !== undefined) {
       writer.uint32(18).string(message.openId);
     }
-    if (message.zoneId !== 0) {
+    if (message.zoneId !== undefined) {
       writer.uint32(24).uint32(message.zoneId);
+    }
+    if (message.gid !== undefined) {
+      writer.uint32(32).uint32(message.gid);
     }
     return writer;
   },
@@ -75,6 +79,14 @@ export const Head: MessageFns<Head> = {
           message.zoneId = reader.uint32();
           continue;
         }
+        case 4: {
+          if (tag !== 32) {
+            break;
+          }
+
+          message.gid = reader.uint32();
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -87,8 +99,9 @@ export const Head: MessageFns<Head> = {
   fromJSON(object: any): Head {
     return {
       cmdId: isSet(object.cmdId) ? globalThis.Number(object.cmdId) : 0,
-      openId: isSet(object.openId) ? globalThis.String(object.openId) : "",
-      zoneId: isSet(object.zoneId) ? globalThis.Number(object.zoneId) : 0,
+      openId: isSet(object.openId) ? globalThis.String(object.openId) : undefined,
+      zoneId: isSet(object.zoneId) ? globalThis.Number(object.zoneId) : undefined,
+      gid: isSet(object.gid) ? globalThis.Number(object.gid) : undefined,
     };
   },
 
@@ -97,11 +110,14 @@ export const Head: MessageFns<Head> = {
     if (message.cmdId !== 0) {
       obj.cmdId = Math.round(message.cmdId);
     }
-    if (message.openId !== "") {
+    if (message.openId !== undefined) {
       obj.openId = message.openId;
     }
-    if (message.zoneId !== 0) {
+    if (message.zoneId !== undefined) {
       obj.zoneId = Math.round(message.zoneId);
+    }
+    if (message.gid !== undefined) {
+      obj.gid = Math.round(message.gid);
     }
     return obj;
   },
@@ -112,8 +128,9 @@ export const Head: MessageFns<Head> = {
   fromPartial(object: DeepPartial<Head>): Head {
     const message = createBaseHead();
     message.cmdId = object.cmdId ?? 0;
-    message.openId = object.openId ?? "";
-    message.zoneId = object.zoneId ?? 0;
+    message.openId = object.openId ?? undefined;
+    message.zoneId = object.zoneId ?? undefined;
+    message.gid = object.gid ?? undefined;
     return message;
   },
 };
