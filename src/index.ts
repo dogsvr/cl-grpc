@@ -1,4 +1,4 @@
-import { BaseCL, BaseCLC, Msg, sendMsgToWorkerThread, infoLog, errorLog } from "@dogsvr/dogsvr/main_thread";
+import { BaseCL, BaseCLC, Msg, sendMsgToWorkerThread, infoLog, errorLog, registerCLFactory, registerCLCFactory } from "@dogsvr/dogsvr/main_thread";
 import { createServer, createChannel, createClient } from 'nice-grpc';
 import { CommonApiServiceDefinition, CommonApiServiceImplementation, CommonApiReq, CommonApiRes, DeepPartial, Head } from './proto/common_api';
 import { Worker } from "worker_threads"
@@ -59,3 +59,6 @@ export class GrpcCLC extends BaseCLC {
     }
 }
 
+// Self-register factories when this module is imported
+registerCLFactory('grpc', (params) => new GrpcCL(params.port));
+registerCLCFactory('grpc', (params) => new GrpcCLC(params.address));
