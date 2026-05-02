@@ -10,7 +10,8 @@ message Head {
   uint32 cmd_id = 1;
   optional string open_id = 2;
   optional uint32 zone_id = 3;
-  optional uint32 gid = 4;
+  // uint64 on the wire, but ts-proto forceLong=number caps it at 2^53-1 (Number.MAX_SAFE_INTEGER)
+  optional uint64 gid = 4;
 }
 
 message CommonApiReq {

@@ -13,7 +13,10 @@ export const protobufPackage = "dogsvr";
 export interface Head {
   cmdId: number;
   openId?: string | undefined;
-  zoneId?: number | undefined;
+  zoneId?:
+    | number
+    | undefined;
+  /** uint64 on the wire, but ts-proto forceLong=number caps it at 2^53-1 (Number.MAX_SAFE_INTEGER) */
   gid?: number | undefined;
 }
 
@@ -43,7 +46,7 @@ export const Head: MessageFns<Head> = {
       writer.uint32(24).uint32(message.zoneId);
     }
     if (message.gid !== undefined) {
-      writer.uint32(32).uint32(message.gid);
+      writer.uint32(32).uint64(message.gid);
     }
     return writer;
   },
@@ -84,7 +87,7 @@ export const Head: MessageFns<Head> = {
             break;
           }
 
-          message.gid = reader.uint32();
+          message.gid = longToNumber(reader.uint64());
           continue;
         }
       }
@@ -318,6 +321,17 @@ export type DeepPartial<T> = T extends Builtin ? T
   : T extends ReadonlyArray<infer U> ? ReadonlyArray<DeepPartial<U>>
   : T extends {} ? { [K in keyof T]?: DeepPartial<T[K]> }
   : Partial<T>;
+
+function longToNumber(int64: { toString(): string }): number {
+  const num = globalThis.Number(int64.toString());
+  if (num > globalThis.Number.MAX_SAFE_INTEGER) {
+    throw new globalThis.Error("Value is larger than Number.MAX_SAFE_INTEGER");
+  }
+  if (num < globalThis.Number.MIN_SAFE_INTEGER) {
+    throw new globalThis.Error("Value is smaller than Number.MIN_SAFE_INTEGER");
+  }
+  return num;
+}
 
 function isSet(value: any): boolean {
   return value !== null && value !== undefined;
