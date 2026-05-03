@@ -1,6 +1,6 @@
 {
   "name": "@dogsvr/cl-grpc",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "gRPC connection layer for @dogsvr/dogsvr (server-to-server).",
   "keywords": [
     "dogsvr",
@@ -25,7 +25,7 @@
     "README.md"
   ],
   "scripts": {
-    "protoc": "./node_modules/.bin/grpc_tools_node_protoc --plugin=protoc-gen-ts_proto=./node_modules/.bin/protoc-gen-ts_proto --ts_proto_out=./src/proto --ts_proto_opt=outputServices=nice-grpc,outputServices=generic-definitions,useExactTypes=false,forceLong=number --proto_path=./src/proto ./src/proto/common_api.proto",
+    "protoc": "grpc_tools_node_protoc --plugin=protoc-gen-ts_proto=./node_modules/.bin/protoc-gen-ts_proto --ts_proto_out=./src/proto --ts_proto_opt=outputServices=nice-grpc,outputServices=generic-definitions,useExactTypes=false,forceLong=number --proto_path=./src/proto ./src/proto/common_api.proto",
     "build": "rm -rf dist && tsc"
   },
   "repository": {
