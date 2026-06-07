@@ -44,6 +44,9 @@
     "nice-grpc": "^2.1.16",
     "protobufjs": "^8.0.3"
   },
+  "peerDependencies": {
+    "@dogsvr/dogsvr": "^0.4.0"
+  },
   "devDependencies": {
     "@dogsvr/dogsvr": "^0.4.0",
     "@types/node": "^24.12.2",

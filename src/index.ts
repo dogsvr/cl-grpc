@@ -1,7 +1,9 @@
-import { BaseCL, BaseCLC, Msg, sendMsgToWorkerThread, infoLog, errorLog, registerCLFactory, registerCLCFactory } from "@dogsvr/dogsvr/main_thread";
+import { BaseCL, BaseCLC, Msg, sendMsgToWorkerThread, registerCLFactory, registerCLCFactory, log as rootLog } from "@dogsvr/dogsvr/main_thread";
 import { createServer, createChannel, createClient } from 'nice-grpc';
 import { CommonApiServiceDefinition, CommonApiServiceImplementation, CommonApiReq, CommonApiRes, DeepPartial, Head } from './proto/common_api';
 import { Worker } from "worker_threads"
+
+const log = rootLog.child({ module: "cl-grpc/index" });
 
 export class GrpcCL extends BaseCL {
     server;
@@ -14,11 +16,11 @@ export class GrpcCL extends BaseCL {
 
     async startListen() {
         await this.server.listen('0.0.0.0:' + this.port);
-        infoLog('grpc server started on port ' + this.port);
+        log.info({ port: this.port }, "grpc server started");
     }
 
     async pushMsg(msg: Msg) {
-        errorLog("grpc not support pushMsg");
+        log.error("grpc not support pushMsg");
     }
 }
 
