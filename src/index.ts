@@ -1,22 +1,65 @@
-import { BaseCL, BaseCLC, Msg, sendMsgToWorkerThread, registerCLFactory, registerCLCFactory, getSpanSink, log as rootLog } from "@dogsvr/dogsvr/main_thread";
+import { BaseCL, BaseCLC, Msg, sendMsgToWorkerThread, registerCLFactory, registerCLCFactory, getSpanSink, log as rootLog, type Log } from "@dogsvr/dogsvr/main_thread";
 import { createServer, createChannel, createClient, CallContext, Metadata } from 'nice-grpc';
+import { setLogger, setLogVerbosity, logVerbosity } from '@grpc/grpc-js';
 import { CommonApiServiceDefinition, CommonApiServiceImplementation, CommonApiReq, CommonApiRes, DeepPartial, Head } from './proto/common_api';
 import { Worker } from "worker_threads"
 
+/** grpc-js LogVerbosity keys: "DEBUG" | "INFO" | "ERROR" | "NONE". */
+type GrpcLogLevel = keyof typeof logVerbosity;
+
 const log = rootLog.child({ module: "cl-grpc/index" });
+
+function adaptForGrpc(target: Log) {
+    return {
+        debug: (...args: unknown[]) => target.debug({grpc: args}),
+        info:  (...args: unknown[]) => target.info ({grpc: args}),
+        error: (...args: unknown[]) => target.error({grpc: args}),
+    };
+}
+
+let grpcLoggerInstalled = false;
+let installedVerbosity = logVerbosity.NONE;
+/** grpc-js setLogger/setLogVerbosity is module-global; coexisting CL/CLC instances widen to the most verbose level. */
+function ensureGrpcLogger(level: GrpcLogLevel): void {
+    const v = logVerbosity[level];
+    if (!grpcLoggerInstalled) {
+        grpcLoggerInstalled = true;
+        setLogger(adaptForGrpc(rootLog.child({ module: "grpc-js" })));
+        installedVerbosity = v;
+        setLogVerbosity(v);
+        return;
+    }
+    if (v < installedVerbosity) {
+        installedVerbosity = v;
+        setLogVerbosity(v);
+    }
+}
+
+export interface GrpcCLParams {
+    port: number;
+    /** grpc-js LogVerbosity key. Default 'ERROR'. */
+    log?: { level?: GrpcLogLevel };
+}
+
+export interface GrpcCLCParams {
+    address: string;
+    /** grpc-js LogVerbosity key. Default 'ERROR'. */
+    log?: { level?: GrpcLogLevel };
+}
 
 export class GrpcCL extends BaseCL {
     server;
 
-    constructor(public port: number) {
+    constructor(public params: GrpcCLParams) {
         super();
+        ensureGrpcLogger(params.log?.level ?? "ERROR");
         this.server = createServer();
         this.server.add(CommonApiServiceDefinition, commonApiServiceImpl);
     }
 
     async startListen() {
-        await this.server.listen('0.0.0.0:' + this.port);
-        log.info({ port: this.port }, "grpc server started");
+        await this.server.listen('0.0.0.0:' + this.params.port);
+        log.info({ port: this.params.port }, "grpc server started");
     }
 
     async pushMsg(msg: Msg) {
@@ -65,9 +108,10 @@ export class GrpcCLC extends BaseCLC {
     channel;
     client;
 
-    constructor(public address: string) {
+    constructor(public params: GrpcCLCParams) {
         super();
-        this.channel = createChannel(address);
+        ensureGrpcLogger(params.log?.level ?? "ERROR");
+        this.channel = createChannel(params.address);
         this.client = createClient(CommonApiServiceDefinition, this.channel);
     }
 
@@ -91,5 +135,5 @@ export class GrpcCLC extends BaseCLC {
     }
 }
 
-registerCLFactory('grpc', (params) => new GrpcCL(params.port));
-registerCLCFactory('grpc', (params) => new GrpcCLC(params.address));
+registerCLFactory('grpc', (params) => new GrpcCL(params as GrpcCLParams));
+registerCLCFactory('grpc', (params) => new GrpcCLC(params as GrpcCLCParams));

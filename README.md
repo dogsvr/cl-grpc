@@ -40,6 +40,21 @@ import * as dogsvr from '@dogsvr/dogsvr/worker_thread';
 await dogsvr.callCmdByClc('battlesvr', head, innerReq);
 ```
 
+### Logging
+
+`@grpc/grpc-js`'s internal logs (channel state transitions, subchannel picks, keepalive, retries, etc.) are routed through dogsvr's logger as `module: "grpc-js"` via the global `setLogger`/`setLogVerbosity` API.
+
+**Default level: `ERROR`.** grpc-js emits per-RPC channel chatter at `INFO` and has no `WARN` tier; `ERROR` matches grpc-js's own out-of-the-box default. Override per-CL/CLC for protocol debugging:
+
+```jsonc
+"cl":  { "grpc":      { "type": "grpc", "port": 20001,                     "log": { "level": "DEBUG" } } },
+"clc": { "battlesvr": { "type": "grpc", "address": "127.0.0.1:30001",      "log": { "level": "DEBUG" } } }
+```
+
+Accepts grpc-js `LogVerbosity` keys: **`"DEBUG"` | `"INFO"` | `"ERROR"` | `"NONE"`** — all upper-case, matching the grpc-js enum member names. Values pass straight to `setLogVerbosity`. **Case-sensitive** and **fails silently**: mis-cased spellings like `"debug"` are looked up on the `LogVerbosity` object, resolve to `undefined`, and grpc-js keeps its previous verbosity — no exception, no log line, no effect. When multiple CL/CLC instances coexist (process-global verbosity), the most verbose configured level wins.
+
+**`GRPC_VERBOSITY` / `GRPC_TRACE` env vars are overridden** by this routing — use `cl.<name>.log.level: "DEBUG"` for verbose investigation instead.
+
 ### Regenerating gRPC stubs
 
 ```sh
