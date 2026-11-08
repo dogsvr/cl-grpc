@@ -37,8 +37,24 @@ Worker-side usage is unchanged — use the dogsvr worker API to call out:
 
 ```ts
 import * as dogsvr from '@dogsvr/dogsvr/worker_thread';
-await dogsvr.callCmdByClc('battlesvr', head, innerReq);
+const body = await dogsvr.callCmdByClc('battlesvr', head, innerReq, { timeoutMs: 1500 }); // timeoutMs defaults to 3000
+dogsvr.notifyByClc('zonesvr', head, innerNtf);                                             // no reply
 ```
+
+### Error codes
+
+The proto `Head` carries the dogsvr error code in `err_code` (`optional sint32`), set only on failure; unset or `0` means success. `1`–`1000` are dogsvr framework codes, every other value is a business code ([error codes](https://github.com/dogsvr/dogsvr/blob/main/docs/reference/error_codes.md)).
+
+On the calling side, `GrpcCLC.callCmd` never rejects:
+
+| Outcome | `errCode` returned to dogsvr |
+|---|---|
+| Peer replied without an error (`err_code` unset or `0`) | none (success) |
+| Peer replied a non-zero code | that code, unchanged |
+| No reply within `clcOptions.timeoutMs` | `dogsvr.CLC_TIMEOUT` (9) |
+| Any other transport failure (peer down, connection reset, …) | `dogsvr.CLC_UNAVAILABLE` (8) |
+
+Apart from `err_code` on replies, only `cmdId`, `openId`, `zoneId` and `gid` cross the wire in either direction; dogsvr-internal head fields stay in-process.
 
 ### Logging
 

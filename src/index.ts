@@ -1,8 +1,10 @@
-import { BaseCL, BaseCLC, Msg, sendMsgToWorkerThread, registerCLFactory, registerCLCFactory, getSpanSink, log as rootLog, type Log } from "@dogsvr/dogsvr/main_thread";
+import {
+    BaseCL, BaseCLC, Msg, sendMsgToWorkerThread, registerCLFactory, registerCLCFactory, getSpanSink, log as rootLog,
+    DEFAULT_CLC_TIMEOUT_MS, DogsvrErrCode, type Log, type MsgHeadType,
+} from "@dogsvr/dogsvr/main_thread";
 import { createServer, createChannel, createClient, CallContext, Metadata } from 'nice-grpc';
 import { setLogger, setLogVerbosity, logVerbosity } from '@grpc/grpc-js';
 import { CommonApiServiceDefinition, CommonApiServiceImplementation, CommonApiReq, CommonApiRes, DeepPartial, Head } from './proto/common_api';
-import { Worker } from "worker_threads"
 
 /** grpc-js LogVerbosity keys: "DEBUG" | "INFO" | "ERROR" | "NONE". */
 type GrpcLogLevel = keyof typeof logVerbosity;
@@ -67,6 +69,24 @@ export class GrpcCL extends BaseCL {
     }
 }
 
+function toGrpcHead(src: MsgHeadType): Head {
+    const head: Head = { cmdId: src.cmdId };
+    if (src.openId !== undefined) head.openId = src.openId;
+    if (src.zoneId !== undefined) head.zoneId = src.zoneId;
+    if (src.gid !== undefined) head.gid = src.gid;
+    if (src.errCode) head.errCode = src.errCode;
+    return head;
+}
+
+/** Ignores err_code: a request never carries one. */
+function fromGrpcHead(src: Head | undefined): MsgHeadType {
+    const head: MsgHeadType = { cmdId: src?.cmdId ?? 0 };
+    if (src?.openId !== undefined) head.openId = src.openId;
+    if (src?.zoneId !== undefined) head.zoneId = src.zoneId;
+    if (src?.gid !== undefined) head.gid = src.gid;
+    return head;
+}
+
 const commonApiServiceImpl: CommonApiServiceImplementation = {
     async commonUnaryApi(
         request: CommonApiReq,
@@ -86,13 +106,12 @@ const commonApiServiceImpl: CommonApiServiceImplementation = {
         return sink.withActive(span, async () => {
             let ok = false;
             try {
-                let reqMsg = new Msg(request.head as Head, request.innerReq);
-                let resMsg = await sendMsgToWorkerThread(reqMsg);
-                let response: DeepPartial<CommonApiRes> = {
-                    head: request.head,
+                const resMsg = await sendMsgToWorkerThread(new Msg(fromGrpcHead(request.head), request.innerReq));
+                const response: DeepPartial<CommonApiRes> = {
+                    head: toGrpcHead(resMsg.head),
                     innerRes: resMsg.body as string,
                 };
-                ok = true;
+                ok = !resMsg.head.errCode;
                 return response;
             } catch (err) {
                 span.recordException(err);
@@ -115,7 +134,7 @@ export class GrpcCLC extends BaseCLC {
         this.client = createClient(CommonApiServiceDefinition, this.channel);
     }
 
-    async callCmd(msg: Msg, thread: Worker | undefined) {
+    async callCmd(msg: Msg): Promise<Msg> {
         const sink = getSpanSink();
         const span = sink.getCurrent();
         const metadata = new Metadata();
@@ -124,13 +143,23 @@ export class GrpcCLC extends BaseCLC {
             sink.inject(span, carrier);
             for (const k of Object.keys(carrier)) metadata.set(k, carrier[k]);
         }
-        let response = await this.client.commonUnaryApi(
-            { head: msg.head, innerReq: msg.body as string },
-            { metadata },
-        );
-        if (thread) {
-            msg.body = response.innerRes;
-            thread.postMessage(msg);
+        const cmdId = msg.head.cmdId;
+        const timeoutMs = msg.head.clcOptions?.timeoutMs ?? DEFAULT_CLC_TIMEOUT_MS;
+        const signal = AbortSignal.timeout(timeoutMs);
+        try {
+            const response = await this.client.commonUnaryApi(
+                { head: toGrpcHead(msg.head), innerReq: msg.body as string },
+                { metadata, signal },
+            );
+            const head: MsgHeadType = { cmdId };
+            const errCode = response.head?.errCode;
+            if (errCode) head.errCode = errCode;
+            return new Msg(head, response.innerRes);
+        } catch (err) {
+            // nice-grpc turns our own abort into a reason-less AbortError, so ask the signal.
+            const timedOut = signal.aborted;
+            log.error({ err, address: this.params.address, cmdId, timeoutMs }, timedOut ? "grpc call timed out" : "grpc call failed");
+            return new Msg({ cmdId, errCode: timedOut ? DogsvrErrCode.CLC_TIMEOUT : DogsvrErrCode.CLC_UNAVAILABLE }, '');
         }
     }
 }

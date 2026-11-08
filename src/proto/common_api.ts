@@ -17,7 +17,11 @@ export interface Head {
     | number
     | undefined;
   /** uint64 on the wire, but ts-proto forceLong=number caps it at 2^53-1 (Number.MAX_SAFE_INTEGER) */
-  gid?: number | undefined;
+  gid?:
+    | number
+    | undefined;
+  /** Replies only; unset = success. */
+  errCode?: number | undefined;
 }
 
 export interface CommonApiReq {
@@ -31,7 +35,7 @@ export interface CommonApiRes {
 }
 
 function createBaseHead(): Head {
-  return { cmdId: 0, openId: undefined, zoneId: undefined, gid: undefined };
+  return { cmdId: 0, openId: undefined, zoneId: undefined, gid: undefined, errCode: undefined };
 }
 
 export const Head: MessageFns<Head> = {
@@ -47,6 +51,9 @@ export const Head: MessageFns<Head> = {
     }
     if (message.gid !== undefined) {
       writer.uint32(32).uint64(message.gid);
+    }
+    if (message.errCode !== undefined) {
+      writer.uint32(40).sint32(message.errCode);
     }
     return writer;
   },
@@ -90,6 +97,14 @@ export const Head: MessageFns<Head> = {
           message.gid = longToNumber(reader.uint64());
           continue;
         }
+        case 5: {
+          if (tag !== 40) {
+            break;
+          }
+
+          message.errCode = reader.sint32();
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -117,6 +132,11 @@ export const Head: MessageFns<Head> = {
         ? globalThis.Number(object.zone_id)
         : undefined,
       gid: isSet(object.gid) ? globalThis.Number(object.gid) : undefined,
+      errCode: isSet(object.errCode)
+        ? globalThis.Number(object.errCode)
+        : isSet(object.err_code)
+        ? globalThis.Number(object.err_code)
+        : undefined,
     };
   },
 
@@ -134,6 +154,9 @@ export const Head: MessageFns<Head> = {
     if (message.gid !== undefined) {
       obj.gid = Math.round(message.gid);
     }
+    if (message.errCode !== undefined) {
+      obj.errCode = Math.round(message.errCode);
+    }
     return obj;
   },
 
@@ -146,6 +169,7 @@ export const Head: MessageFns<Head> = {
     message.openId = object.openId ?? undefined;
     message.zoneId = object.zoneId ?? undefined;
     message.gid = object.gid ?? undefined;
+    message.errCode = object.errCode ?? undefined;
     return message;
   },
 };
